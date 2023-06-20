@@ -5,14 +5,12 @@ from sklearn.metrics import confusion_matrix
 import dataset
 from torch.utils.data import DataLoader
 from multiprocessing import set_start_method
-from encoder import ECAPA_TDNN
 from loss import OCSoftmax
 import wandb
 from hyperpyyaml import load_hyperpyyaml
-from encoder.ECAPA_TDNN import ECAPA_TDNN
-from classifier.mlp import MLP2
 import os
 import torchaudio
+
 
 try:
     set_start_method("spawn")
