@@ -1,11 +1,7 @@
 import torch
-import numpy as np
 from EER import compute_eer
 from sklearn.metrics import confusion_matrix
-import dataset
-from torch.utils.data import DataLoader
 from multiprocessing import set_start_method
-from loss import OCSoftmax
 import wandb
 from hyperpyyaml import load_hyperpyyaml
 import os
@@ -58,7 +54,6 @@ def eval(dataloader, encoder, classifier, loss):
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        file_name = sample["file_name"]
         x, _ = encoder(x)
         pred = classifier(x.squeeze())
         l = loss(pred, label)
