@@ -5,7 +5,6 @@ from multiprocessing import set_start_method
 import wandb
 from hyperpyyaml import load_hyperpyyaml
 import os
-import torchaudio
 
 
 try:
@@ -14,16 +13,15 @@ except RuntimeError:
     pass
 
 
-def train(dataloader, encoder, classifier, loss_fn, optim):
+def train(dataloader, model, loss, optim):
     cum_loss = 0
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        x, _ = encoder(x)
-        pred = classifier(x.squeeze())
+        pred = model(x)
         optim.zero_grad()
-        l = loss_fn(pred, label)
+        l = loss(pred, label)
         l.backward()
         optim.step()
         cum_loss += l.item()
@@ -49,13 +47,12 @@ def train(dataloader, encoder, classifier, loss_fn, optim):
 
 
 @torch.no_grad()
-def eval(dataloader, encoder, classifier, loss):
+def eval(dataloader, model, loss):
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        x, _ = encoder(x)
-        pred = classifier(x.squeeze())
+        pred = model(x.squeeze())
         l = loss(pred, label)
         labels = torch.cat([labels, label], axis=0)
         scores = torch.cat([scores, pred.squeeze()], axis=0)
@@ -72,11 +69,6 @@ def eval(dataloader, encoder, classifier, loss):
     return {"test EER": eer, "test mistakes": mistakes, "test confusion matrix": cm}
 
 
-def set_requires_grad(model, requires_grad: bool):
-    for p in model.parameters():
-        p.requires_grad = requires_grad
-
-
 if __name__ == "__main__":
     with open("./hyperp.yaml") as hp_file:
         hparams = load_hyperpyyaml(hp_file)
@@ -90,12 +82,13 @@ if __name__ == "__main__":
     epochs = hparams["epochs"]
     group_name = hparams["group_name"]
     classifier = hparams["classifier"]
-    # encoder = hparams["encoder"]
-    encoder = torchaudio.pipelines.WAV2VEC2_BASE.get_model()
+    model = hparams["model"]
     train_dataset = hparams["train_dataset"]
     dev_dataset = hparams["dev_dataset"]
     train_dataloader = hparams["train_dataloader"]
     dev_dataloader = hparams["dev_dataloader"]
+    optim = hparams["optim"]
+    loss = hparams["loss"]
 
     wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
     run = wandb.init(
@@ -118,40 +111,29 @@ if __name__ == "__main__":
         artifact_dir = artifact.download()
         if os.path.exists(artifact_dir):
             checkpoint = torch.load(os.path.join(artifact_dir, "checkpoint.pt"))
-            encoder.load_state_dict(checkpoint["encoder"])
+            model.load_state_dict(checkpoint["encoder"])
             classifier.load_state_dict(checkpoint["classifier"])
             epoch = checkpoint["epoch"]
     except:
         epoch = 0
 
-    parameters = list(classifier.parameters())
-    if encoder_requires_grad:
-        parameters += list(encoder.parameters())
-    loss_fn = torch.nn.BCELoss()
-    optim = torch.optim.SGD(parameters, learning_rate)
-    loss_fn.to(device=device)
-    set_requires_grad(encoder, encoder_requires_grad)
-    set_requires_grad(classifier, classifier_requires_grad)
-
-    encoder.to(device=device)
-    classifier.to(device=device)
-    wandb.watch(classifier)
-    wandb.watch(encoder)
+    optim.add_param_group({"model": model.state_dict()})
+    loss.to(device=device)
+    model.to(device=device)
+    wandb.watch(model)
 
     for epoch in range(epoch, epochs):
-        classifier.train(True)
-        encoder.train(encoder_requires_grad)
-        train_report = train(train_dataloader, encoder, classifier, loss_fn, optim)
+        model.train(True)
+        train_report = train(train_dataloader, model, model, loss, optim)
         wandb.log(train_report)
-        classifier.eval()
-        encoder.eval()
-        test_report = eval(dev_dataloader, encoder, classifier, loss_fn)
+        model.eval()
+        test_report = eval(dev_dataloader, model, model, loss)
         wandb.log(test_report)
 
         torch.save(
             {
-                "encoder": encoder.state_dict(),
-                "classifier": classifier.state_dict(),
+                "model": model.state_dict(),
+                "model": model.state_dict(),
                 "epoch": epoch,
                 "train_EER": 1,
                 "test_EER": 2,
