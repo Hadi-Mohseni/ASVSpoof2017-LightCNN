@@ -1,0 +1,53 @@
+group_name: WAV2VEC2_BASE
+artifact: WAV2VECbase_MLP2_BN
+
+DEVICE: cuda
+epochs: 100
+train_batch_size: 64
+test_batch_size: 64
+learning_rate: 0.001
+encoder_requires_grad: False
+classifier_requires_grad: True
+loss_function: !new:torch.nn.BCELoss
+
+classifier: !new:classifier.mlp.MLP2
+    channels: [50, 1]
+    input_size: 199
+    dropout: null
+    bn: True
+    device: cuda
+
+# encoder: !new:torchaudio.pipelines.WAV2VEC2_BASE.get_model
+# encoder: !new:encoder.ECAPA_TDNN.ECAPA_TDNN
+#     input_size: 80
+#     device: "cuda"
+#     channels: [1024, 1024, 1024, 1024, 3072]
+#     kernel_sizes: [5, 3, 3, 3, 1]
+#     dilations: [1, 2, 3, 4, 1]
+#     attention_channels: 128
+#     lin_neurons: 192
+
+train_dataset: !new:dataset.Dataset
+    type: train
+    balance: False
+    aug: False
+    feature_type: "waveform"
+    clip: True
+
+dev_dataset: !new:dataset.Dataset
+    type: dev
+    balance: False
+    aug: False
+    feature_type: "waveform"
+    clip: True
+
+train_dataloader: !new:torch.utils.data.DataLoader
+    dataset: !ref <train_dataset>
+    batch_size: !ref <train_batch_size>
+    num_workers: 2
+    shuffle: True
+
+dev_dataloader: !new:torch.utils.data.DataLoader
+    dataset: !ref <dev_dataset>
+    batch_size: !ref <test_batch_size>
+    num_workers: 2

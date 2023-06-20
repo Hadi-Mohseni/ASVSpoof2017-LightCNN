@@ -1,0 +1,7 @@
+TRAIN_ANNOT_PATH: /content/PA/PA/ASVspoof2019_PA_cm_protocols/ASVspoof2019.PA.cm.train.trn.txt
+EVAL_ANNOT_PATH: /content/PA/PA/ASVspoof2019_PA_cm_protocols/ASVspoof2019.PA.cm.eval.trl.txt
+DEV_ANNOT_PATH: /content/PA/PA/ASVspoof2019_PA_cm_protocols/ASVspoof2019.PA.cm.dev.trl.txt
+TRAIN_FILE_PATH: /content/PA/PA/ASVspoof2019_PA_train/flac/
+DEV_FILE_PATH: /content/PA/PA/ASVspoof2019_PA_dev/flac/
+EVAL_FILE_PATH: /content/PA/PA/ASVspoof2019_PA_eval/flac/
+DEVICE: cuda
