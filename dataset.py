@@ -1,28 +1,10 @@
 from torch.utils.data import Dataset
 import torchaudio
-import torchaudio.transforms
-from speechbrain.lobes.features import Fbank
+from torchaudio.transforms import Spectrogram
 import torch
 import pandas as pd
-import numpy as np
-from hyperpyyaml import load_hyperpyyaml
 from typing import Literal
-
-
-with open("./config.yaml") as hp_file:
-    hparamas = load_hyperpyyaml(hp_file)
-
-DEVICE = hparamas["DEVICE"]
-TRAIN_ANNOT_PATH = hparamas["TRAIN_ANNOT_PATH"]
-EVAL_ANNOT_PATH = hparamas["EVAL_ANNOT_PATH"]
-DEV_ANNOT_PATH = hparamas["DEV_ANNOT_PATH"]
-TRAIN_FILE_PATH = hparamas["TRAIN_FILE_PATH"]
-DEV_FILE_PATH = hparamas["DEV_FILE_PATH"]
-EVAL_FILE_PATH = hparamas["EVAL_FILE_PATH"]
-DTYPES = {
-    "names": ("spkr_id", "file_name", "spkr_feature", "attckr_feature", "label"),
-    "formats": ("S", "S", "S", "S", "f"),
-}
+import os
 
 
 def convert_label(x: str):
@@ -36,74 +18,49 @@ def clip(sig: torch.Tensor):
     return sig[:, :desired_length]
 
 
-CONVERTER = {4: convert_label}
+DEVICE = "CUDA"
+TRAIN_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_train.trn.txt"
+DEV_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_dev.trl.txt"
+EVAL_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_eval.trl.txt"
+TRAIN_FOLDER_PATH = "/content/ASVspoof2017_V2_train/ASVspoof2017_V2_train"
+DEV_FOLDER_PATH = "/content/ASVspoof2017_V2_dev/ASVspoof2017_V2_dev"
+EVAL_FOLDER_PATH = "/content/ASVspoof2017_V2_eval/ASVspoof2017_V2_eval"
+CONVERTER = {1: convert_label}
+DTYPES = {
+    "names": ("file_name", "label", "spkr_id"),
+    "formats": ("S", "f", "S"),
+}
 
 
 class Dataset(Dataset):
-    fbank = Fbank(n_mels=80, context=False, deltas=False)
-    time_mask = torchaudio.transforms.TimeMasking(80)
-    frequency_mask = torchaudio.transforms.FrequencyMasking(80)
+    spec = Spectrogram(win_length=25, hop_length=10)
 
-    def __init__(
-        self,
-        type: Literal["train", "dev", "eval"],
-        balance: bool = False,
-        aug=False,
-        feature_type: Literal["waveform", "fbank"] = "fbank",
-        clip=False,
-    ):
-        assert type in ["train", "dev", "eval"], "incoorect specified type"
-        self.type = type
-        self.aug = aug
-        self.feature_type = feature_type
-        self.clip = clip
+    def __init__(self, type: Literal["train", "dev", "eval"]):
         if type == "train":
-            self.file_path = TRAIN_FILE_PATH
+            self.file_path = TRAIN_FOLDER_PATH
             annot = TRAIN_ANNOT_PATH
         elif type == "dev":
-            self.file_path = DEV_FILE_PATH
+            self.file_path = DEV_FOLDER_PATH
             annot = DEV_ANNOT_PATH
         elif type == "eval":
-            self.file_path = EVAL_FILE_PATH
+            self.file_path = EVAL_FOLDER_PATH
             annot = EVAL_ANNOT_PATH
+
         self.dataset = pd.read_csv(
             annot, converters=CONVERTER, names=DTYPES["names"], sep=" "
         )
-
-        if balance:
-            self.dataset = self.balance(self.dataset)
-        else:
-            self.dataset = self.dataset.to_numpy()
+        self.dataset["file_name"] = os.path.join(
+            self.file_path, self.dataset["file_name"]
+        )
+        self.dataset = self.dataset.to_numpy()
 
     def __getitem__(self, index):
-        file_name = self.dataset[index][1]
-        file_path = self.file_path + file_name + ".flac"
-        feature = torchaudio.load(file_path, format="flac")[0]
-
-        if self.clip:
-            feature = clip(feature)
-
-        if self.feature_type == "fbank":
-            feature = self.fbank(feature)
-
-        if self.aug:
-            feature = self.time_mask(feature)
-            feature = self.frequency_mask(feature)
-
-        # feature = torch.tensor(feature, dtype=torch.float32, device=DEVICE).squeeze(0)
+        feature = torchaudio.load(self.dataset[index]["file_name"])
+        feature = clip(feature)
+        feature = self.spec(feature)
         label = torch.tensor(self.dataset[index][4], dtype=torch.float32, device=DEVICE)
-        sample = {"feature": feature, "label": label, "file_name": file_name}
+        sample = {"feature": feature, "label": label}
         return sample
 
     def __len__(self):
         return len(self.dataset)
-
-    def balance(self, dataset: pd.DataFrame):
-        spoof_samples = dataset[dataset["label"] == 0]
-        bonafide_samples = dataset[dataset["label"] == 1]
-        bonafide_size = len(bonafide_samples)
-        choices = np.arange(len(spoof_samples))
-        choices = list(np.random.choice(choices, bonafide_size))
-        spoof_samples = spoof_samples.iloc[choices]
-        dataset = np.concatenate([spoof_samples, bonafide_samples], axis=0)
-        return dataset
