@@ -80,7 +80,7 @@ if __name__ == "__main__":
     epochs = hparams["epochs"]
     group_name = hparams["group_name"]
     model = hparams["model"]
-    train_dataset:  = hparams["train_dataset"]
+    train_dataset = hparams["train_dataset"]
     dev_dataset = hparams["dev_dataset"]
     train_dataloader = hparams["train_dataloader"]
     dev_dataloader = hparams["dev_dataloader"]
