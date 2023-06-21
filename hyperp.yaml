@@ -5,9 +5,7 @@ DEVICE: cuda
 epochs: 100
 train_batch_size: 64
 test_batch_size: 64
-loss_function: !new:torch.nn.BCELoss
-optim: !new:torch.optim.Adam
-    lr: 1e-4
+loss: !new:torch.nn.BCELoss
 
 model: !new:model.LightCNN
     in_channels: 80
