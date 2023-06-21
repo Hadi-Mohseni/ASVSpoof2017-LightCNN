@@ -5,27 +5,12 @@ DEVICE: cuda
 epochs: 100
 train_batch_size: 64
 test_batch_size: 64
-learning_rate: 0.001
-encoder_requires_grad: False
-classifier_requires_grad: True
 loss_function: !new:torch.nn.BCELoss
+optim: !new:torch.optim.Adam
+    lr: 1e-4
 
-classifier: !new:classifier.mlp.MLP2
-    channels: [50, 1]
-    input_size: 199
-    dropout: null
-    bn: True
-    device: cuda
-
-# encoder: !new:torchaudio.pipelines.WAV2VEC2_BASE.get_model
-# encoder: !new:encoder.ECAPA_TDNN.ECAPA_TDNN
-#     input_size: 80
-#     device: "cuda"
-#     channels: [1024, 1024, 1024, 1024, 3072]
-#     kernel_sizes: [5, 3, 3, 3, 1]
-#     dilations: [1, 2, 3, 4, 1]
-#     attention_channels: 128
-#     lin_neurons: 192
+model: !new:model.LightCNN
+    in_channels: 80
 
 train_dataset: !new:dataset.Dataset
     type: train
