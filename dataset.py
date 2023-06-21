@@ -8,7 +8,7 @@ import os
 
 
 def convert_label(x: str):
-    return [1, 0] if x == "bonafide" else [0, 1]
+    return [1, 0] if x == "genuine" else [0, 1]
 
 
 def clip(sig: torch.Tensor):

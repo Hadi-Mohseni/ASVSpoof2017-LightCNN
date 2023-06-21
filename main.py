@@ -51,7 +51,6 @@ def eval(dataloader, model, loss):
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        print(x.size())
         pred = model(x)
         l = loss(pred, label)
         labels = torch.cat([labels, label], axis=0)
@@ -100,13 +99,13 @@ if __name__ == "__main__":
     optim = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     for epoch in range(epoch, epochs):
-        # model.train(True)
-        # train_report = train(train_dataloader, model, loss, optim)
+        model.train(True)
+        train_report = train(train_dataloader, model, loss, optim)
         model.eval()
         test_report = eval(dev_dataloader, model, loss)
 
-        # wandb.log(train_report)
-        # wandb.log(test_report)
-        # save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
-        # if epoch % 5 == 0:
-        #     wandb.alert(title="info", text=f"finished epoch {epoch}")
+        wandb.log(train_report)
+        wandb.log(test_report)
+        save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
+        if epoch % 5 == 0:
+            wandb.alert(title="info", text=f"finished epoch {epoch}")
