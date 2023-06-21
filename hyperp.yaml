@@ -14,17 +14,9 @@ model: !new:model.LightCNN
 
 train_dataset: !new:dataset.Dataset
     type: train
-    balance: False
-    aug: False
-    feature_type: "waveform"
-    clip: True
 
 dev_dataset: !new:dataset.Dataset
     type: dev
-    balance: False
-    aug: False
-    feature_type: "waveform"
-    clip: True
 
 train_dataloader: !new:torch.utils.data.DataLoader
     dataset: !ref <train_dataset>
