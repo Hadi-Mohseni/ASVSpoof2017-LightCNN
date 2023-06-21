@@ -1,5 +1,5 @@
-group_name: WAV2VEC2_BASE
-artifact: WAV2VECbase_MLP2_BN
+group_name: LightCNN
+artifact: LightCNN
 
 DEVICE: cuda
 epochs: 100

@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
     run = wandb.init(
-        project="LightCNN",
+        project="ASVSpoof2017",
         name=hparams["artifact"],
         group=group_name,
         config={"train batch_size": train_bs, "test batch_size": test_bs},
