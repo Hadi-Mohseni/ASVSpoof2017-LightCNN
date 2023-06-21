@@ -55,6 +55,8 @@ class LightCNN(nn.Module):
         self.fc7 = nn.Linear(1, 2)
 
         self.maxpool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(p = 0.7)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)
@@ -74,5 +76,7 @@ class LightCNN(nn.Module):
         x = self.maxpool(x)
         x = self.flat(x)
         x = self.mfm6(self.fc6(x))
+        x = self.dropout(x)
         x = self.fc7(x)
+        x = self.softmax(x)
         return x
