@@ -5,6 +5,7 @@ from multiprocessing import set_start_method
 import wandb
 from hyperpyyaml import load_hyperpyyaml
 import os
+from .wandb import load_model, save_model
 
 
 try:
@@ -76,51 +77,29 @@ if __name__ == "__main__":
     device = hparams["DEVICE"]
     train_bs = hparams["train_batch_size"]
     test_bs = hparams["test_batch_size"]
-    learning_rate = hparams["learning_rate"]
-    encoder_requires_grad = hparams["encoder_requires_grad"]
-    classifier_requires_grad = hparams["classifier_requires_grad"]
     epochs = hparams["epochs"]
     group_name = hparams["group_name"]
-    classifier = hparams["classifier"]
     model = hparams["model"]
-    train_dataset = hparams["train_dataset"]
+    train_dataset:  = hparams["train_dataset"]
     dev_dataset = hparams["dev_dataset"]
     train_dataloader = hparams["train_dataloader"]
     dev_dataloader = hparams["dev_dataloader"]
-    optim = hparams["optim"]
+    optim: torch.optim.Optimizer = hparams["optim"]
     loss = hparams["loss"]
+    artifact = hparams["artifact"]
+    torch.set_default_device(device)
 
     wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
     run = wandb.init(
-        project="ASVSpoof2019-PA",
+        project="LightCNN",
         name=hparams["artifact"],
         group=group_name,
-        config={
-            "train batch_size": train_bs,
-            "test batch_size": test_bs,
-            "learning rate": learning_rate,
-            "fintune": encoder_requires_grad,
-            "classifier channels": classifier.channels,
-            "batch norm": classifier.bn,
-            "dopout": classifier.dropout,
-        },
+        config={"train batch_size": train_bs, "test batch_size": test_bs},
     )
 
-    try:
-        artifact = run.use_artifact(f"{hparams['artifact']}:latest", type="model")
-        artifact_dir = artifact.download()
-        if os.path.exists(artifact_dir):
-            checkpoint = torch.load(os.path.join(artifact_dir, "checkpoint.pt"))
-            model.load_state_dict(checkpoint["encoder"])
-            classifier.load_state_dict(checkpoint["classifier"])
-            epoch = checkpoint["epoch"]
-    except:
-        epoch = 0
-
-    optim.add_param_group({"model": model.state_dict()})
-    loss.to(device=device)
-    model.to(device=device)
+    run, model, epoch = load_model(artifact, model, "latest", run)
     wandb.watch(model)
+    optim.add_param_group({"model": model.state_dict()})
 
     for epoch in range(epoch, epochs):
         model.train(True)
@@ -129,19 +108,6 @@ if __name__ == "__main__":
         model.eval()
         test_report = eval(dev_dataloader, model, model, loss)
         wandb.log(test_report)
-
-        torch.save(
-            {
-                "model": model.state_dict(),
-                "model": model.state_dict(),
-                "epoch": epoch,
-                "train_EER": 1,
-                "test_EER": 2,
-            },
-            "checkpoint.pt",
-        )
-        save_artifact = wandb.Artifact(name=hparams["artifact"], type="model")
-        save_artifact.add_file("checkpoint.pt")
-        run.log_artifact(save_artifact)
+        save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
         if epoch % 5 == 0:
             wandb.alert(title="info", text=f"finished epoch {epoch}")
