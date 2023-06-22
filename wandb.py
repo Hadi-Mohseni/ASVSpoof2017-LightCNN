@@ -28,13 +28,14 @@ def load_model(artifact: str, model: Module, version: str, run: Run):
         - epoch: resuming epoch number.
     """
     try:
-        artifact = run.use_artifact(f"{model}:{version}", type="model")
+        artifact = run.use_artifact(f"{artifact}:{version}", type="model")
         artifact_dir = artifact.download()
-        if os.path.exists(artifact_dir):
-            checkpoint = torch.load(os.path.join(artifact_dir, "checkpoint.pt"))
-            model.load_state_dict(checkpoint["encoder"])
-            epoch = checkpoint["epoch"]
-    except:
+        checkpoint = torch.load(os.path.join(artifact_dir, "checkpoint.pt"))
+        model.load_state_dict(checkpoint["model"])
+        epoch = checkpoint["epoch"]
+        print("model loaded")
+    except Exception as e:
+        print(str(e))
         epoch = 0
 
     return run, model, epoch
