@@ -33,7 +33,7 @@ DTYPES = {
 
 
 class Dataset(Dataset):
-    spec = Spectrogram(n_fft=798, win_length=25, hop_length=10)
+    spec = Spectrogram(n_fft=798, win_length=25, hop_length=10, normalized=True)
 
     def __init__(self, type: Literal["train", "dev", "eval"]):
         if type == "train":
