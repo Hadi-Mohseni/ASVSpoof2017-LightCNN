@@ -6,6 +6,7 @@ import wandb
 from hyperpyyaml import load_hyperpyyaml
 import os
 from artifact import load_model, save_model
+from torch.nn.init import xavier_normal
 import numpy as np
 
 try:
@@ -91,6 +92,7 @@ if __name__ == "__main__":
         name=hparams["artifact"],
         group=group_name,
         config={"train batch_size": train_bs, "test batch_size": test_bs},
+        resume=True,
     )
 
     model.to(device=device)
@@ -99,10 +101,13 @@ if __name__ == "__main__":
     optim = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     for epoch in range(epoch, epochs):
+        print(f"----------------- start epoch {epoch} -----------------")
         model.train(True)
         train_report = train(train_dataloader, model, loss, optim)
+        print(train_report)
         model.eval()
         test_report = eval(dev_dataloader, model, loss)
+        print(test_report)
 
         wandb.log(train_report)
         wandb.log(test_report)
