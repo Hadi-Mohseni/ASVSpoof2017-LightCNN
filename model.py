@@ -22,30 +22,39 @@ class mfm(nn.Module):
 
 
 class LightCNN(nn.Module):
-    def __init__(self, in_channels: int) -> None:
+    def __init__(self, in_channels: int, initializer=nn.init.xavier_normal_) -> None:
         super(LightCNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, 5, 1, padding=2)
         self.mfm1 = mfm(16)
+        initializer(self.conv1.weight)
 
         self.conv2a = nn.Conv2d(16, 32, 1, 1)
         self.mfm2a = mfm(16)
         self.conv2b = nn.Conv2d(16, 48, 3, 1, padding=1)
         self.mfm2b = mfm(24)
+        initializer(self.conv2a.weight)
+        initializer(self.conv2b.weight)
 
         self.conv3a = nn.Conv2d(24, 48, 1, 1)
         self.mfm3a = mfm(32, type=2)
         self.conv3b = nn.Conv2d(32, 64, 3, 1, padding=1)
         self.mfm3b = mfm(32)
+        initializer(self.conv3a.weight)
+        initializer(self.conv3b.weight)
 
         self.conv4a = nn.Conv2d(32, 64, 1, 1)
         self.mfm4a = mfm(32)
         self.conv4b = nn.Conv2d(32, 32, 3, 1, padding=1)
         self.mfm4b = mfm(16)
+        initializer(self.conv4b.weight)
+        initializer(self.conv4a.weight)
 
         self.conv5a = nn.Conv2d(16, 32, 1, 1)
         self.mfm5a = mfm(16)
         self.conv5b = nn.Conv2d(16, 32, 3, 1, padding=1)
         self.mfm5b = mfm(16)
+        initializer(self.conv5b.weight)
+        initializer(self.conv5a.weight)
 
         self.flat = nn.Flatten()
 
