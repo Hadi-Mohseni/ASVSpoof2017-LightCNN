@@ -5,7 +5,7 @@ from multiprocessing import set_start_method
 import wandb
 from hyperpyyaml import load_hyperpyyaml
 import os
-from .artifact import load_model, save_model
+from artifact import load_model, save_model
 from torch.nn.init import xavier_normal
 import numpy as np
 
@@ -27,8 +27,8 @@ def train(dataloader, model, loss, optim):
         l.backward()
         optim.step()
         cum_loss += l.item()
-        labels = torch.cat(tuple(labels, label), axis=0)
-        scores = torch.cat((scores, pred.squeeze()), axis=0)
+        labels = torch.cat([labels, label], axis=0)
+        scores = torch.cat([scores, pred.squeeze()], axis=0)
 
     scores = scores.detach().cpu().numpy()
     labels = labels.detach().cpu().numpy()

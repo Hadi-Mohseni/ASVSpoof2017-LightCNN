@@ -9,7 +9,6 @@ loss: !new:torch.nn.BCELoss
 
 model: !new:model.LightCNN
     in_channels: 1
-    initializer: !new:torch.nn.init.xavier_normal
 
 train_dataset: !new:dataset.Dataset
     type: train
