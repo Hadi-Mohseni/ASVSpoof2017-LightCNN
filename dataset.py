@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 import torchaudio
-from torchaudio.transforms import Spectrogram
+from torchaudio.transforms import Spectrogram, MelSpectrogram
 import torch
 import pandas as pd
 from typing import Literal
@@ -54,7 +54,7 @@ class Dataset(Dataset):
     def __getitem__(self, index):
         file_path = os.path.join(self.file_path, self.dataset[index][0])
         feature = torchaudio.load(file_path)[0]
-        feature = self.spec(feature)
+        feature = 10 * torch.log10(self.spec(feature))
         feature = clip(feature)
         label = torch.tensor(self.dataset[index][1], dtype=torch.float32, device=DEVICE)
         feature = feature.to(device=DEVICE)
