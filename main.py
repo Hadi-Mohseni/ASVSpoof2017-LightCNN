@@ -92,7 +92,6 @@ if __name__ == "__main__":
         name=hparams["artifact"],
         group=group_name,
         config={"train batch_size": train_bs, "test batch_size": test_bs},
-        resume=True,
     )
 
     model.to(device=device)

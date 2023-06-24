@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 import torchaudio
-from torchaudio.transforms import Spectrogram, MelSpectrogram
+from torchaudio.transforms import Spectrogram, AmplitudeToDB
 import torch
 import pandas as pd
 from typing import Literal
@@ -34,6 +34,7 @@ DTYPES = {
 
 class Dataset(Dataset):
     spec = Spectrogram(n_fft=798, win_length=25, hop_length=10, normalized=True)
+    ptod_converter = AmplitudeToDB()
 
     def __init__(self, type: Literal["train", "dev", "eval"]):
         if type == "train":
@@ -53,8 +54,9 @@ class Dataset(Dataset):
 
     def __getitem__(self, index):
         file_path = os.path.join(self.file_path, self.dataset[index][0])
-        feature = torchaudio.load(file_path)[0]
-        feature = 10 * torch.log10(self.spec(feature))
+        feature, sr = torchaudio.load(file_path)
+        feature = torchaudio.functional.vad(feature, sample_rate=sr)
+        feature = self.ptod_converter(self.spec(feature))
         feature = clip(feature)
         label = torch.tensor(self.dataset[index][1], dtype=torch.float32, device=DEVICE)
         feature = feature.to(device=DEVICE)
