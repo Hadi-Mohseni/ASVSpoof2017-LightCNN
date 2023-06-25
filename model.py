@@ -70,6 +70,8 @@ class NinBlock(nn.Module):
         self.mfm2 = mfm(out_channels)
         self.maxpool = nn.MaxPool2d(2, 2)
         self.bn2 = nn.BatchNorm2d(out_channels)
+        torch.nn.init.xavier_normal_(self.nin.weight)
+        torch.nn.init.xavier_normal_(self.conv.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.nin(x)
@@ -122,8 +124,8 @@ class LightCNN(nn.Module):
             nn.Flatten(),
             nn.Linear(5184, 64),
             mfm(32),
-            nn.Linear(32, 2),
             nn.Dropout(p=0.7),
+            nn.Linear(32, 2),
         )
 
         self.softmax = nn.Softmax(dim=1)
