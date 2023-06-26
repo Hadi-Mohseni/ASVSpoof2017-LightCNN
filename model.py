@@ -113,6 +113,8 @@ class LightCNN(nn.Module):
             nn.BatchNorm2d(16),
         )
 
+        torch.nn.init.xavier_normal_(self.block1[0].weight)
+
         self.backbone = nn.Sequential(
             NinBlock(16, 24),
             NinBlock(24, 32),
@@ -124,6 +126,7 @@ class LightCNN(nn.Module):
             nn.Flatten(),
             nn.Linear(5184, 64),
             mfm(32),
+            nn.BatchNorm1d(32),
             nn.Dropout(p=0.7),
             nn.Linear(32, 2),
         )
