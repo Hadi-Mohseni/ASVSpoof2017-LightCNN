@@ -1,3 +1,4 @@
 *.pdf
 result
 __pycache__
+*.wav
