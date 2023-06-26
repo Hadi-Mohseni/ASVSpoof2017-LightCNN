@@ -4,10 +4,9 @@ from sklearn.metrics import confusion_matrix
 from multiprocessing import set_start_method
 import wandb
 from hyperpyyaml import load_hyperpyyaml
-import os
 from artifact import load_model, save_model
-from torch.nn.init import xavier_normal
 import numpy as np
+from typing import Literal
 
 try:
     set_start_method("spawn")
@@ -47,7 +46,7 @@ def train(dataloader, model, loss, optim):
 
 
 @torch.no_grad()
-def eval(dataloader, model, loss):
+def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
         x = sample["feature"]
@@ -66,7 +65,17 @@ def eval(dataloader, model, loss):
     scores[scores < threshold] = 0
     mistakes = len(scores[np.argmax(scores, axis=1) != np.argmax(labels, axis=1)])
     cm = confusion_matrix(np.argmax(labels, axis=1), np.argmax(scores, axis=1))
-    return {"test EER": eer, "test mistakes": mistakes, "test confusion matrix": cm}
+
+    if type == "dev":
+        report = {"dev EER": eer, "dev mistakes": mistakes, "dev confusion matrix": cm}
+    else:
+        report = {
+            "eval EER": eer,
+            "eval mistakes": mistakes,
+            "eval confusion matrix": cm,
+        }
+
+    return report
 
 
 if __name__ == "__main__":
@@ -79,10 +88,16 @@ if __name__ == "__main__":
     epochs = hparams["epochs"]
     group_name = hparams["group_name"]
     model = hparams["model"]
+
     train_dataset = hparams["train_dataset"]
-    dev_dataset = hparams["dev_dataset"]
     train_dataloader = hparams["train_dataloader"]
+
+    dev_dataset = hparams["dev_dataset"]
     dev_dataloader = hparams["dev_dataloader"]
+
+    eval_dataset = hparams["eval_dataset"]
+    eval_dataloader = hparams["eval_dataloader"]
+
     loss = hparams["loss"]
     artifact = hparams["artifact"]
 
@@ -104,12 +119,17 @@ if __name__ == "__main__":
         model.train(True)
         train_report = train(train_dataloader, model, loss, optim)
         print(train_report)
+
         model.eval()
-        test_report = eval(dev_dataloader, model, loss)
-        print(test_report)
+        dev_report = eval(dev_dataloader, model, loss, type="dev")
+        print(dev_report)
+
+        eval_report = eval(eval_dataloader, model, loss, type="eval")
+        print(eval_report)
 
         wandb.log(train_report)
-        wandb.log(test_report)
+        wandb.log(dev_report)
+        wandb.log(eval_report)
         save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
         if epoch % 5 == 0:
             wandb.alert(title="info", text=f"finished epoch {epoch}")
