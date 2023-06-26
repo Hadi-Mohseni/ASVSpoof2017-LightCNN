@@ -5,15 +5,7 @@ import torch
 import pandas as pd
 import os
 from typing import Literal, Dict
-
-
-DEVICE = "cuda"
-TRAIN_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_train.trn.txt"
-DEV_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_dev.trl.txt"
-EVAL_ANNOT_PATH = "/content/protocol_V2/protocol_V2/ASVspoof2017_V2_eval.trl.txt"
-TRAIN_FOLDER_PATH = "/content/ASVspoof2017_V2_train/ASVspoof2017_V2_train/"
-DEV_FOLDER_PATH = "/content/ASVspoof2017_V2_dev/ASVspoof2017_V2_dev/"
-EVAL_FOLDER_PATH = "/content/ASVspoof2017_V2_eval/ASVspoof2017_V2_eval/"
+import numpy as np
 
 
 def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
@@ -38,7 +30,12 @@ def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
     return label
 
 
-def resize(spec: torch.Tensor, out_length: int = 864) -> torch.Tensor:
+def resize(
+    spec: torch.Tensor,
+    time_len: int = 864,
+    freq_len: int = 400,
+    high_freq: bool = True,
+) -> torch.Tensor:
     """
     resize
 
@@ -59,11 +56,15 @@ def resize(spec: torch.Tensor, out_length: int = 864) -> torch.Tensor:
     """
 
     # repeat spectrogram if its size is samll
-    while spec.size()[2] < out_length:
+    while spec.size()[2] < time_len:
         spec = torch.cat([spec, spec], dim=2)
 
     # clip
-    out_spec = spec[:, :, :out_length]
+    if high_freq:
+        min_freq = spec.size()[1] - freq_len
+        out_spec = spec[:, min_freq:, :time_len]
+    else:
+        out_spec = spec[:, :freq_len, :time_len]
 
     return out_spec
 
@@ -77,7 +78,12 @@ class Dataset(Dataset):
     spec = Spectrogram(n_fft=798, win_length=600, hop_length=200, normalized=True)
     db_converter = AmplitudeToDB()
 
-    def __init__(self, annot_path: str, ds_path: str, device: str = "cuda") -> None:
+    def __init__(
+        self,
+        annot_path: str,
+        ds_path: str,
+        device: str = "cuda",
+    ) -> None:
         """
         Parameters
         ----------
@@ -90,7 +96,7 @@ class Dataset(Dataset):
         """
         self.ds_path = ds_path
         self.annot_path = annot_path
-        self.divece = device
+        self.device = device
 
         # read given annotation file
         converter = {1: convert_label}
@@ -113,9 +119,9 @@ class Dataset(Dataset):
             "feature" -> torch.Tensor, "Label" -> torch.Tensor
         """
         file_path = os.path.join(self.ds_path, self.dataset[index][0])
-        feature = torchaudio.load(file_path)[0]
-        feature = self.db_converter(self.spec(feature))
-        feature = resize(feature)
+        wave = torchaudio.load(file_path)[0]
+        log_spec = self.db_converter(self.spec(wave))
+        feature = resize(log_spec)
         label = self.dataset[index][1]
         feature = feature.to(device=self.device)
         label = label.to(device=self.device)
