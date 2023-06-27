@@ -131,11 +131,9 @@ class LightCNN(nn.Module):
             nn.Linear(32, 2),
         )
 
-        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.block1(x)
         x = self.backbone(x)
-        x = self.classifier(x)
-        pred = self.softmax(x)
+        pred = self.classifier(x)
         return pred

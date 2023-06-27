@@ -22,7 +22,7 @@ def train(dataloader, model, loss, optim):
         label = sample["label"]
         pred = model(x)
         optim.zero_grad()
-        l = loss(pred, label)
+        l = loss(pred, label.squeeze())
         l.backward()
         optim.step()
         cum_loss += l.item()
@@ -52,7 +52,7 @@ def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
         x = sample["feature"]
         label = sample["label"]
         pred = model(x)
-        l = loss(pred, label)
+        l = loss(pred, label.squeeze())
         labels = torch.cat([labels, label], axis=0)
         scores = torch.cat([scores, pred.squeeze()], axis=0)
 
