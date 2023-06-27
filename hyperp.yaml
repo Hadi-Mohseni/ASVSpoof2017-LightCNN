@@ -6,13 +6,12 @@ epochs: 100
 train_batch_size: 64
 test_batch_size: 64
 
-loss: !new:torch.nn.BCELoss
-    # loss: torch.nn.CrossEntropyLoss
+# loss: !new:torch.nn.BCELoss
+# loss: torch.nn.CrossEntropyLoss
 
-    # loss: !new:loss.SphereFace
-    #     feat_dim: 2
-    #     num_class: 2
-
+loss: !new:loss.SphereFace
+    feat_dim: 16
+    num_class: 2
 
 model: !new:model.LightCNN
     in_channels: 1

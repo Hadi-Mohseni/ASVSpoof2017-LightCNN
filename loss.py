@@ -43,11 +43,4 @@ class SphereFace(nn.Module):
         logits = self.s * (cos_theta + d_theta)
 
         loss = F.cross_entropy(logits, y)
-        return loss
-
-
-if __name__ == "__main__":
-    loss = SphereFace(2, 2)
-    x = torch.rand(6, 2)
-    y = torch.tensor([1, 0] * 6, dtype=torch.int64)
-    loss(x, y)
+        return loss, logits
