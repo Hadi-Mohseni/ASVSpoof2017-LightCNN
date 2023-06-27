@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+from activation import AngularSoftmax
 
 
 class mfm(nn.Module):
@@ -129,8 +130,8 @@ class LightCNN(nn.Module):
             nn.BatchNorm1d(32),
             nn.Dropout(p=0.7),
             nn.Linear(32, 2),
+            AngularSoftmax(2, 2),
         )
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.block1(x)

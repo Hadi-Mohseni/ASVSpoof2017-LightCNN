@@ -1,18 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import math
 
 
-class SphereFace(nn.Module):
+class AngularSoftmax(nn.Module):
     """reference: <SphereFace: Deep Hypersphere Embedding for Face Recognition>"
     It also used characteristic gradient detachment tricks proposed in
     <SphereFace Revived: Unifying Hyperspherical Face Recognition>.
     """
 
     def __init__(self, feat_dim, num_class, s=30.0, m=1.5):
-        super(SphereFace, self).__init__()
+        super(AngularSoftmax, self).__init__()
         self.feat_dim = feat_dim
         self.num_class = num_class
         self.s = s
@@ -41,13 +40,4 @@ class SphereFace(nn.Module):
             d_theta = phi_theta - cos_theta
 
         logits = self.s * (cos_theta + d_theta)
-
-        loss = F.cross_entropy(logits, y)
-        return loss
-
-
-if __name__ == "__main__":
-    loss = SphereFace(2, 2)
-    x = torch.rand(6, 2)
-    y = torch.tensor([1, 0] * 6, dtype=torch.int64)
-    loss(x, y)
+        return logits

@@ -8,6 +8,7 @@ from artifact import load_model, save_model
 import numpy as np
 from typing import Literal
 
+
 try:
     set_start_method("spawn")
 except RuntimeError:
@@ -110,6 +111,7 @@ if __name__ == "__main__":
     )
 
     model.to(device=device)
+    loss.to(device=device)
     run, model, epoch = load_model(artifact, model, "latest", run)
     wandb.watch(model)
     optim = torch.optim.Adam(model.parameters(), lr=1e-4)
