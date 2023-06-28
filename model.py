@@ -137,12 +137,21 @@ class LightCNN(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
+<<<<<<< HEAD
             nn.Linear(62752, 160),
             mfm(80),
             nn.BatchNorm1d(80),
             nn.Dropout(p=0.75),
             nn.Linear(80, 2),
             nn.Softmax(dim=1),
+=======
+            nn.Linear(5184, 64),
+            mfm(32),
+            nn.BatchNorm1d(32),
+            nn.Dropout(p=0.7),
+            nn.Linear(32, 2),
+            nn.Softmax(dim=1)
+>>>>>>> better_implemenation
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
