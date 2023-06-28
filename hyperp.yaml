@@ -1,20 +1,20 @@
-group_name: LightCNN_decibel_win600_hop200_bn_final
-artifact: LightCNN_decibel_win600_hop200_bn_final
+run_name:
+group_name:
+artifact:
+notes:
 
 DEVICE: cuda
 epochs: 100
 train_batch_size: 64
 test_batch_size: 64
 
-# loss: !new:torch.nn.BCELoss
-# loss: torch.nn.CrossEntropyLoss
+weights: !new:torch.Tensor
+    data: [0.9, 0.1]
 
-loss: !new:loss.SphereFace
-    feat_dim: 16
-    num_class: 2
+loss: !new:torch.nn.BCELoss
+    weight: !ref <weights>
 
 model: !new:model.LightCNN
-    in_channels: 1
 
 train_dataset: !new:dataset.Dataset
     ds_path: "/content/ASVspoof2017_V2_train/ASVspoof2017_V2_train/"

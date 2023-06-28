@@ -128,7 +128,7 @@ class LightCNN(nn.Module):
             mfm(32),
             nn.BatchNorm1d(32),
             nn.Dropout(p=0.7),
-            nn.Linear(32, 16),
+            nn.Linear(32, 2),
             nn.Softmax(dim=1)
         )
 

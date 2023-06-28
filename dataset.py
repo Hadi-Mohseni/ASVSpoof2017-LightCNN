@@ -22,7 +22,7 @@ def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
     Returns
     -------
     torch.Tensor
-        [1] if "genuine" else [0]
+        [1, 0] if "genuine" else [0, 1]
     """
     label = torch.tensor([1, 0]) if label == "genuine" else torch.tensor([0, 1])
     label = label.to(dtype=torch.float32)
