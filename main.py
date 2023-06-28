@@ -2,10 +2,13 @@ import torch
 from EER import compute_eer
 from multiprocessing import set_start_method
 from hyperpyyaml import load_hyperpyyaml
+<<<<<<< HEAD
 import numpy as np
+=======
 from artifact import load_model, save_model
+>>>>>>> better_implemenation
 from typing import Literal
-""""""
+
 
 try:
     set_start_method("spawn")
