@@ -29,11 +29,11 @@ def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
     return label
 
 
-def resize(
+def _resize(
     spec: torch.Tensor,
     time_len: int = 864,
     freq_len: int = 400,
-    high_freq: bool = True,
+    high_freq: bool = False,
 ) -> torch.Tensor:
     """
     resize
@@ -58,7 +58,6 @@ def resize(
     while spec.size()[2] < time_len:
         spec = torch.cat([spec, spec], dim=2)
 
-    # clip
     if high_freq:
         min_freq = spec.size()[1] - freq_len
         out_spec = spec[:, min_freq:, :time_len]
@@ -120,7 +119,7 @@ class Dataset(Dataset):
         file_path = os.path.join(self.ds_path, self.dataset[index][0])
         wave = torchaudio.load(file_path)[0]
         log_spec = self.db_converter(self.spec(wave))
-        feature = resize(log_spec)
+        feature = _resize(log_spec)
         label = self.dataset[index][1]
         feature = feature.to(device=self.device)
         label = label.to(device=self.device)

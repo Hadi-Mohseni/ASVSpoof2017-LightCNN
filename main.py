@@ -1,11 +1,9 @@
 import torch
 from EER import compute_eer
-from sklearn.metrics import confusion_matrix
 from multiprocessing import set_start_method
 import wandb
 from hyperpyyaml import load_hyperpyyaml
 from artifact import load_model, save_model
-import numpy as np
 from typing import Literal
 
 
@@ -16,66 +14,60 @@ except RuntimeError:
 
 
 def train(dataloader, model, loss, optim):
-    cum_loss = 0
+    cum_loss = mistakes = 0
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        feat = model(x)
+        pred = model(x)
         optim.zero_grad()
-        l, pred = loss(feat, label.squeeze())
+        l = loss(pred, label.squeeze())
         l.backward()
         optim.step()
         cum_loss += l.item()
+
+        log_pred = torch.log(pred)
+        score = torch.sub(log_pred[:, 0], log_pred[:, 0])
         labels = torch.cat([labels, label], axis=0)
-        scores = torch.cat([scores, pred.squeeze()], axis=0)
+        scores = torch.cat([scores, score], axis=0)
+        mistakes += len(pred[torch.argmax(pred, dim=1) != torch.argmax(label, dim=1)])
 
     scores = scores.detach().cpu().numpy()
     labels = labels.detach().cpu().numpy()
-    target_score = scores[labels[:, 0] == 1][:, 0]
-    nontarget_score = scores[labels[:, 0] == 0][:, 0]
+    target_score = scores[labels[:, 0] == 1]
+    nontarget_score = scores[labels[:, 0] == 0]
     eer, threshold = compute_eer(target_score, nontarget_score)
-    mistakes = len(scores[np.argmax(scores, axis=1) != np.argmax(labels, axis=1)])
-    cm = confusion_matrix(np.argmax(labels, axis=1), np.argmax(scores, axis=1))
 
-    return {
-        "train EER": eer,
-        "train mistakes": mistakes,
-        "train confusion matrix": cm,
-        "train loss": cum_loss,
-    }
+    return {"train EER": eer, "train mistakes": mistakes, "train loss": cum_loss}
 
 
 @torch.no_grad()
 def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
+    cum_loss = mistakes = 0
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        feat = model(x)
-        l, pred = loss(feat, label.squeeze())
+        pred = model(x)
+        l = loss(pred, label.squeeze())
+        cum_loss += l.item()
+
+        log_pred = torch.log(pred)
+        score = torch.sub(log_pred[:, 0], log_pred[:, 0])
         labels = torch.cat([labels, label], axis=0)
-        scores = torch.cat([scores, pred.squeeze()], axis=0)
+        scores = torch.cat([scores, score], axis=0)
+        mistakes += len(pred[torch.argmax(pred, dim=1) != torch.argmax(label, dim=1)])
 
     scores = scores.cpu().numpy()
     labels = labels.cpu().numpy()
-    target_score = scores[labels[:, 0] == 1][:, 0]
-    nontarget_score = scores[labels[:, 0] == 0][:, 0]
+    target_score = scores[labels[:, 0] == 1]
+    nontarget_score = scores[labels[:, 0] == 0]
     eer, threshold = compute_eer(target_score, nontarget_score)
-    scores[scores >= threshold] = 1
-    scores[scores < threshold] = 0
-    mistakes = len(scores[np.argmax(scores, axis=1) != np.argmax(labels, axis=1)])
-    cm = confusion_matrix(np.argmax(labels, axis=1), np.argmax(scores, axis=1))
 
     if type == "dev":
-        report = {"dev EER": eer, "dev mistakes": mistakes, "dev confusion matrix": cm}
+        report = {"dev EER": eer, "dev mistakes": mistakes, "dev loss": cum_loss}
     else:
-        report = {
-            "eval EER": eer,
-            "eval mistakes": mistakes,
-            "eval confusion matrix": cm,
-        }
-
+        report = {"eval EER": eer, "eval mistakes": mistakes, "eval loss": cum_loss}
     return report
 
 
@@ -84,30 +76,26 @@ if __name__ == "__main__":
         hparams = load_hyperpyyaml(hp_file)
 
     device = hparams["DEVICE"]
-    train_bs = hparams["train_batch_size"]
-    test_bs = hparams["test_batch_size"]
-    epochs = hparams["epochs"]
-    group_name = hparams["group_name"]
-    model = hparams["model"]
-
     train_dataset = hparams["train_dataset"]
     train_dataloader = hparams["train_dataloader"]
-
     dev_dataset = hparams["dev_dataset"]
     dev_dataloader = hparams["dev_dataloader"]
-
     eval_dataset = hparams["eval_dataset"]
     eval_dataloader = hparams["eval_dataloader"]
 
+    model = hparams["model"]
     loss = hparams["loss"]
     artifact = hparams["artifact"]
+    train_bs = hparams["train_batch_size"]
+    test_bs = hparams["test_batch_size"]
+    epochs = hparams["epochs"]
 
     wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
     run = wandb.init(
         project="ASVSpoof2017",
-        name=hparams["artifact"],
-        group=group_name,
-        config={"train batch_size": train_bs, "test batch_size": test_bs},
+        name=hparams["run_name"],
+        group=hparams["group_name"],
+        notes=hparams["notes"],
     )
 
     model.to(device=device)
@@ -125,7 +113,6 @@ if __name__ == "__main__":
         model.eval()
         dev_report = eval(dev_dataloader, model, loss, type="dev")
         print(dev_report)
-
         eval_report = eval(eval_dataloader, model, loss, type="eval")
         print(eval_report)
 
@@ -133,5 +120,3 @@ if __name__ == "__main__":
         wandb.log(dev_report)
         wandb.log(eval_report)
         save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
-        if epoch % 5 == 0:
-            wandb.alert(title="info", text=f"finished epoch {epoch}")
