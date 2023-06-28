@@ -5,7 +5,6 @@ import torch
 import pandas as pd
 import os
 from typing import Literal, Dict
-import numpy as np
 
 
 def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
@@ -23,7 +22,7 @@ def convert_label(label: Literal["spoof", "genuine"]) -> torch.Tensor:
     Returns
     -------
     torch.Tensor
-        [1, 0] if "genuine" else [0, 1]
+        [1] if "genuine" else [0]
     """
     label = torch.tensor([1, 0]) if label == "genuine" else torch.tensor([0, 1])
     label = label.to(dtype=torch.float32)

@@ -21,9 +21,9 @@ def train(dataloader, model, loss, optim):
     for sample in dataloader:
         x = sample["feature"]
         label = sample["label"]
-        feat = model(x)
+        pred = model(x)
         optim.zero_grad()
-        l, pred = loss(feat, label.squeeze())
+        l = loss(feat, label.squeeze())
         l.backward()
         optim.step()
         cum_loss += l.item()

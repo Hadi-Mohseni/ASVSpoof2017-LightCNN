@@ -129,6 +129,7 @@ class LightCNN(nn.Module):
             nn.BatchNorm1d(32),
             nn.Dropout(p=0.7),
             nn.Linear(32, 16),
+            nn.Softmax(dim=1)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

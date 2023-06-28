@@ -43,4 +43,4 @@ class SphereFace(nn.Module):
         logits = self.s * (cos_theta + d_theta)
 
         loss = F.cross_entropy(logits, y)
-        return loss, logits
+        return loss
