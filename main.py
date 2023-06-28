@@ -2,9 +2,7 @@ import torch
 from EER import compute_eer
 from sklearn.metrics import confusion_matrix
 from multiprocessing import set_start_method
-import wandb
 from hyperpyyaml import load_hyperpyyaml
-from artifact import load_model, save_model
 import numpy as np
 from typing import Literal
 
@@ -23,7 +21,7 @@ def train(dataloader, model, loss, optim):
         label = sample["label"]
         pred = model(x)
         optim.zero_grad()
-        l = loss(feat, label.squeeze())
+        l = loss(pred, label.squeeze())
         l.backward()
         optim.step()
         cum_loss += l.item()
@@ -89,49 +87,21 @@ if __name__ == "__main__":
     epochs = hparams["epochs"]
     group_name = hparams["group_name"]
     model = hparams["model"]
-
     train_dataset = hparams["train_dataset"]
     train_dataloader = hparams["train_dataloader"]
-
     dev_dataset = hparams["dev_dataset"]
     dev_dataloader = hparams["dev_dataloader"]
-
     eval_dataset = hparams["eval_dataset"]
     eval_dataloader = hparams["eval_dataloader"]
-
     loss = hparams["loss"]
     artifact = hparams["artifact"]
-
-    wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
-    run = wandb.init(
-        project="ASVSpoof2017",
-        name=hparams["artifact"],
-        group=group_name,
-        config={"train batch_size": train_bs, "test batch_size": test_bs},
-    )
-
     model.to(device=device)
     loss.to(device=device)
-    run, model, epoch = load_model(artifact, model, "latest", run)
-    wandb.watch(model)
     optim = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    for epoch in range(epoch, epochs):
-        print(f"----------------- start epoch {epoch} -----------------")
+    for epoch in range(epochs):
         model.train(True)
         train_report = train(train_dataloader, model, loss, optim)
-        print(train_report)
-
         model.eval()
         dev_report = eval(dev_dataloader, model, loss, type="dev")
-        print(dev_report)
-
         eval_report = eval(eval_dataloader, model, loss, type="eval")
-        print(eval_report)
-
-        wandb.log(train_report)
-        wandb.log(dev_report)
-        wandb.log(eval_report)
-        save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
-        if epoch % 5 == 0:
-            wandb.alert(title="info", text=f"finished epoch {epoch}")

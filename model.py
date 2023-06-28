@@ -107,33 +107,47 @@ class LightCNN(nn.Module):
         super(LightCNN, self).__init__()
 
         self.block1 = nn.Sequential(
-            nn.Conv2d(in_channels, 32, 5, 1, padding=2),
-            mfm(16),
+            nn.Conv2d(in_channels, 64, 5, 1, padding=2),
+            mfm(32),
             nn.MaxPool2d(2, 2),
-            nn.BatchNorm2d(16),
+            nn.BatchNorm2d(32),
         )
 
         torch.nn.init.xavier_normal_(self.block1[0].weight)
 
-        self.backbone = nn.Sequential(
-            NinBlock(16, 24),
-            NinBlock(24, 32),
-            NinBlock(32, 16),
-            NinBlock(16, 16),
+        self.backbone1 = nn.Sequential(
+            NinBlock(32, 48),
+            NinBlock(48, 64),
+        )
+
+        self.backbone2 = nn.Sequential(
+            nn.Conv2d(64, 128, 1, 1),
+            mfm(64),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, 1, padding=1),
+            mfm(32),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 64, 1, 1),
+            mfm(32),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 64, 3, 1, padding=1),
+            mfm(32),
+            nn.MaxPool2d(2, 2),
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(5184, 64),
-            mfm(32),
-            nn.BatchNorm1d(32),
-            nn.Dropout(p=0.7),
-            nn.Linear(32, 16),
-            nn.Softmax(dim=1)
+            nn.Linear(62752, 160),
+            mfm(80),
+            nn.BatchNorm1d(80),
+            nn.Dropout(p=0.75),
+            nn.Linear(80, 2),
+            nn.Softmax(dim=1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.block1(x)
-        x = self.backbone(x)
+        x = self.backbone1(x)
+        x = self.backbone2(x)
         pred = self.classifier(x)
         return pred
