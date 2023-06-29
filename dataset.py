@@ -27,7 +27,7 @@ class Dataset(Dataset):
             self.annot_path, converters=converter, names=names, sep=" "
         )
         self.dataset = self.dataset.to_numpy()
-        self.spec_converter = Spectrogram(n_fft=2048, win_length=2048, hop_length=512)
+        self.spec_converter = Spectrogram(n_fft=798, win_length=700, hop_length=200)
         self.db_converter = AmplitudeToDB()
 
     def __getitem__(self, index: int) -> Dict:
