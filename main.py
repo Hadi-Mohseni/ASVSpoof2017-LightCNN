@@ -17,25 +17,24 @@ def train(dataloader, model, loss, optim):
     cum_loss = mistakes = 0
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
-        x = sample["feature"]
-        label = sample["label"]
+        x: torch.Tensor = sample["feature"].to(device=device)
+        label: torch.Tensor = sample["label"].to(device=device).squeeze()
         pred = model(x)
         optim.zero_grad()
-        l = loss(pred, label.squeeze())
+        l = loss(pred, label)
         l.backward()
         optim.step()
         cum_loss += l.item()
 
-        log_pred = torch.log(pred)
-        score = torch.sub(log_pred[:, 0], log_pred[:, 0])
+        score = torch.sub(pred[:, 1], pred[:, 0])
         labels = torch.cat([labels, label], axis=0)
         scores = torch.cat([scores, score], axis=0)
-        mistakes += len(pred[torch.argmax(pred, dim=1) != torch.argmax(label, dim=1)])
+        mistakes += len(pred[torch.argmax(pred, dim=1) != label])
 
     scores = scores.detach().cpu().numpy()
     labels = labels.detach().cpu().numpy()
-    target_score = scores[labels[:, 0] == 1]
-    nontarget_score = scores[labels[:, 0] == 0]
+    target_score = scores[labels == 1]
+    nontarget_score = scores[labels == 0]
     eer, threshold = compute_eer(target_score, nontarget_score)
 
     return {"train EER": eer, "train mistakes": mistakes, "train loss": cum_loss}
@@ -46,22 +45,21 @@ def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
     cum_loss = mistakes = 0
     scores = labels = torch.tensor([], device="cuda")
     for sample in dataloader:
-        x = sample["feature"]
-        label = sample["label"]
+        x: torch.Tensor = sample["feature"].to(device=device)
+        label: torch.Tensor = sample["label"].to(device=device).squeeze()
         pred = model(x)
-        l = loss(pred, label.squeeze())
+        l = loss(pred, label)
         cum_loss += l.item()
 
-        log_pred = torch.log(pred)
-        score = torch.sub(log_pred[:, 0], log_pred[:, 0])
+        score = torch.sub(pred[:, 1], pred[:, 0])
         labels = torch.cat([labels, label], axis=0)
         scores = torch.cat([scores, score], axis=0)
-        mistakes += len(pred[torch.argmax(pred, dim=1) != torch.argmax(label, dim=1)])
+        mistakes += len(pred[torch.argmax(pred, dim=1) != label])
 
     scores = scores.cpu().numpy()
     labels = labels.cpu().numpy()
-    target_score = scores[labels[:, 0] == 1]
-    nontarget_score = scores[labels[:, 0] == 0]
+    target_score = scores[labels == 1]
+    nontarget_score = scores[labels == 0]
     eer, threshold = compute_eer(target_score, nontarget_score)
 
     if type == "dev":
@@ -72,7 +70,7 @@ def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
 
 
 if __name__ == "__main__":
-    with open("/content/ASVSpoof2017-LightCNN/hyperp.yaml") as hp_file:
+    with open("/content/ResSpec_ASVSpoof/hyperp.yaml") as hp_file:
         hparams = load_hyperpyyaml(hp_file)
 
     device = hparams["DEVICE"]
@@ -102,7 +100,7 @@ if __name__ == "__main__":
     loss.to(device=device)
     run, model, epoch = load_model(artifact, model, "latest", run)
     wandb.watch(model)
-    optim = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optim = torch.optim.Adam(model.parameters(), lr=1e-5)
 
     for epoch in range(epoch, epochs):
         print(f"----------------- start epoch {epoch} -----------------")

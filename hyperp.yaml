@@ -5,16 +5,16 @@ notes:
 
 DEVICE: cuda
 epochs: 100
-train_batch_size: 64
-test_batch_size: 64
+train_batch_size: 32
+test_batch_size: 32
 
 weights: !new:torch.Tensor
-    data: [0.9, 0.1]
+    data: [1, 9]
 
-loss: !new:torch.nn.BCELoss
+loss: !new:torch.nn.NLLLoss
     weight: !ref <weights>
 
-model: !new:model.LightCNN
+model: !new:model.SpectrogramModel
 
 train_dataset: !new:dataset.Dataset
     ds_path: "/content/ASVspoof2017_V2_train/ASVspoof2017_V2_train/"
