@@ -14,7 +14,7 @@ weights: !new:torch.Tensor
 loss: !new:torch.nn.NLLLoss
     weight: !ref <weights>
 
-model: !new:model.SpectrogramModel
+model: !new:model.LightCNN
 
 train_dataset: !new:dataset.Dataset
     ds_path: "/content/ASVspoof2017_V2_train/ASVspoof2017_V2_train/"

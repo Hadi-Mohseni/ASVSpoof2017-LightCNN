@@ -124,7 +124,7 @@ class LightCNN(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(5184, 64),
+            nn.Linear(1920, 64),
             mfm(32),
             nn.BatchNorm1d(32),
             nn.Dropout(p=0.75),

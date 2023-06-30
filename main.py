@@ -15,8 +15,9 @@ except RuntimeError:
 
 def train(dataloader, model, loss, optim):
     cum_loss = mistakes = 0
-    scores = labels = torch.tensor([], device="cuda")
-    for sample in dataloader:
+    scores = labels = torch.tensor([], device=device)
+    for batch_num, sample in enumerate(dataloader):
+        print(f"----------- Training batch {batch_num} -----------")
         x: torch.Tensor = sample["feature"].to(device=device)
         label: torch.Tensor = sample["label"].to(device=device).squeeze()
         pred = model(x)
@@ -43,7 +44,7 @@ def train(dataloader, model, loss, optim):
 @torch.no_grad()
 def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
     cum_loss = mistakes = 0
-    scores = labels = torch.tensor([], device="cuda")
+    scores = labels = torch.tensor([], device=device)
     for sample in dataloader:
         x: torch.Tensor = sample["feature"].to(device=device)
         label: torch.Tensor = sample["label"].to(device=device).squeeze()
