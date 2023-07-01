@@ -11,33 +11,20 @@ class mfm(nn.Module):
     Paper: A light CNN for deep face representation with noisy labels
     """
 
-    def __init__(self, out_channels: int, type: int = 1) -> None:
+    def __init__(self, out_channels: int) -> None:
         """
         Parameters
         ----------
         out_channels : int
             number of channels in the output
-        type : int, optional
-            type=1 --> two group of channels and uses maximum `out.size=(B, out_channels/2, H, W)`
-            type=2 --> three groups, uses max and mean `out.size=(B, 2*out_channels/3, H, W)`
-            by default 1
         """
         super(mfm, self).__init__()
         self.out_channels = out_channels
-        self.type = type
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.type == 1:
-            # split channels into two groups
-            x = torch.split(x, self.out_channels, 1)
-            out = torch.max(x[0], x[1])
-        if self.type == 2:
-            # split channels into three groups
-            x = torch.split(x, int(self.out_channels / 2), 1)
-            out1 = torch.max(x[0], x[1])
-            out2 = (x[1] + x[2]) / 2
-            out = torch.cat([out1, out2], dim=1)
-
+        # split channels into two groups
+        x = torch.split(x, self.out_channels, 1)
+        out = torch.max(x[0], x[1])
         return out
 
 

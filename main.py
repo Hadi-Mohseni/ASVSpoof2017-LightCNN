@@ -1,9 +1,7 @@
 import torch
 from EER import compute_eer
 from multiprocessing import set_start_method
-import wandb
 from hyperpyyaml import load_hyperpyyaml
-from artifact import load_model, save_model
 from typing import Literal
 
 
@@ -81,29 +79,19 @@ if __name__ == "__main__":
     dev_dataloader = hparams["dev_dataloader"]
     eval_dataset = hparams["eval_dataset"]
     eval_dataloader = hparams["eval_dataloader"]
-
     model = hparams["model"]
     loss = hparams["loss"]
-    artifact = hparams["artifact"]
     train_bs = hparams["train_batch_size"]
     test_bs = hparams["test_batch_size"]
     epochs = hparams["epochs"]
 
-    wandb.login(key="2a1c0bb6f463145bf20169508da8e60d57e39c8f")
-    run = wandb.init(
-        project="ASVSpoof2017",
-        name=hparams["run_name"],
-        group=hparams["group_name"],
-        notes=hparams["notes"],
-    )
-
+    checkpoint = torch.load("checkpoint.pt")
+    model.load_state_dict(checkpoint["model"])
     model.to(device=device)
     loss.to(device=device)
-    run, model, epoch = load_model(artifact, model, "latest", run)
-    wandb.watch(model)
     optim = torch.optim.Adam(model.parameters(), lr=1e-5)
 
-    for epoch in range(epoch, epochs):
+    for epoch in range(epochs):
         print(f"----------------- start epoch {epoch} -----------------")
         model.train(True)
         train_report = train(train_dataloader, model, loss, optim)
@@ -114,8 +102,3 @@ if __name__ == "__main__":
         print(dev_report)
         eval_report = eval(eval_dataloader, model, loss, type="eval")
         print(eval_report)
-
-        wandb.log(train_report)
-        wandb.log(dev_report)
-        wandb.log(eval_report)
-        save_model(run, {"model": model.state_dict(), "epoch": epoch}, artifact)
