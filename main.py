@@ -69,7 +69,7 @@ def eval(dataloader, model, loss, type: Literal["dev", "eval"]):
 
 
 if __name__ == "__main__":
-    with open("/content/ResSpec_ASVSpoof/hyperp.yaml") as hp_file:
+    with open("./hyperp.yaml") as hp_file:
         hparams = load_hyperpyyaml(hp_file)
 
     device = hparams["DEVICE"]
